@@ -135,6 +135,41 @@ arch.H_cycles=3 arch.L_cycles=4 \
 
 *Runtime:* < 24 hours
 
+## Analyzing Intermediate Results
+
+TRM uses Adaptive Computation Time (ACT) to iteratively refine solutions. You can capture and analyze these intermediate solving steps:
+
+### Running Evaluation with Intermediate Capture
+
+```bash
+# Evaluate with intermediate results capture (limit to 10 examples)
+python pretrain.py \
+  --config-path checkpoints/your_checkpoint_dir \
+  --config-name all_config_eval \
+  load_checkpoint=checkpoints/step_XXX.pt \
+  checkpoint_path=checkpoints/eval_output/ \
+  epochs=1 eval_interval=1 min_eval_interval=0 \
+  global_batch_size=10 \
+  +max_eval_batches=1
+```
+
+This saves intermediate results to `checkpoints/eval_output/intermediate_results/`.
+
+### Generating HTML Reports
+
+```bash
+# Generate colored HTML report with step-by-step solving visualization
+python3 scripts/generate_html_report_with_intermediates.py
+
+# Analyze convergence and trajectories
+python3 scripts/analyze_intermediate_results.py checkpoints/eval_output/intermediate_results/
+```
+
+For detailed documentation on intermediate results, see:
+- `INTERMEDIATE_RESULTS_GUIDE.md` - Technical architecture and implementation details
+- `examples/analyze_sudoku_solving.py` - 7 practical analysis examples
+- `scripts/` - Analysis and visualization tools
+
 ## Reference
 
 If you find our work useful, please consider citing:

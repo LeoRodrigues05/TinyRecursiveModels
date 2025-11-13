@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Adam optimizer (installed via pip)
+adam_atan2/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Model checkpoints and training outputs
+checkpoints/
+outputs/
+wandb/
+
+# Data files
+data/
+*.npy
+*.npz
+*.pkl
+*.pickle
+
+# Kaggle data
+kaggle/
+
+# CUDA installer
+*.run
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary documentation files (keep only main README.md and one guide)
+IMPLEMENTATION_CHECKLIST.md
+INTERMEDIATE_CAPTURE_SUMMARY.md
+INTERMEDIATE_QUICK_REF.md
+INTERMEDIATE_RESULTS_USAGE.md

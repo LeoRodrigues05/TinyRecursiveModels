@@ -5,6 +5,7 @@ import math
 import yaml
 import shutil
 import copy
+import pickle
 
 import torch
 import torch.distributed as dist
@@ -77,6 +78,7 @@ class PretrainConfig(pydantic.BaseModel):
     checkpoint_every_eval: bool = False
     eval_interval: Optional[int] = None
     min_eval_interval: Optional[int] = 0 # when to start eval
+    max_eval_batches: Optional[int] = None  # Limit number of batches during evaluation (None = all)
     eval_save_outputs: List[str] = []
 
     ema: bool = False # use Exponential-Moving-Average
@@ -149,7 +151,7 @@ def create_model(config: PretrainConfig, train_metadata: PuzzleDatasetMetadata, 
         optimizers = [
             AdamATan2(
                 model.parameters(),
-                lr=0,  # Needs to be set by scheduler
+                lr=float(config.lr),  # Needs to be set by scheduler
                 weight_decay=config.weight_decay,
                 betas=(config.beta1, config.beta2)
             )
@@ -179,7 +181,7 @@ def create_model(config: PretrainConfig, train_metadata: PuzzleDatasetMetadata, 
             ),
             AdamATan2(
                 model.parameters(),
-                lr=0,  # Needs to be set by scheduler
+                lr=float(config.lr),  # Needs to be set by scheduler
                 weight_decay=config.weight_decay,
                 betas=(config.beta1, config.beta2)
             )
@@ -248,17 +250,40 @@ def load_checkpoint(model: nn.Module, config: PretrainConfig):
         # Load state dict
         state_dict = torch.load(config.load_checkpoint, map_location="cuda")
 
-        # Resize and reset puzzle emb if needed
-        puzzle_emb_name = "_orig_mod.model.inner.puzzle_emb.weights"
-        expected_shape: torch.Size = model.model.puzzle_emb.weights.shape  # type: ignore
-        if puzzle_emb_name in state_dict:
-            puzzle_emb = state_dict[puzzle_emb_name]
-            if puzzle_emb.shape != expected_shape:
-                print(f"Resetting puzzle embedding as shape is different. Found {puzzle_emb.shape}, Expected {expected_shape}")
-                # Re-initialize using mean
-                state_dict[puzzle_emb_name] = (
-                    torch.mean(puzzle_emb, dim=0, keepdim=True).expand(expected_shape).contiguous()
-                )
+        # Detect if checkpoint has a wrapper prefix (e.g., "_orig_mod." from torch.compile).
+        # Check if the model's expected keys match the checkpoint keys format.
+        model_keys = set(model.state_dict().keys())
+        checkpoint_keys = set(state_dict.keys())
+        
+        # If model expects "_orig_mod." prefix but checkpoint doesn't have it, add prefix
+        if any(k.startswith("_orig_mod.") for k in model_keys) and not any(k.startswith("_orig_mod.") for k in checkpoint_keys):
+            print("Detected model has '_orig_mod.' prefix but checkpoint doesn't; adding prefix to checkpoint keys")
+            state_dict = {f"_orig_mod.{k}": v for k, v in state_dict.items()}
+        # If checkpoint has "_orig_mod." prefix but model doesn't, strip it
+        elif any(k.startswith("_orig_mod.") for k in checkpoint_keys) and not any(k.startswith("_orig_mod.") for k in model_keys):
+            print("Detected checkpoint has '_orig_mod.' prefix but model doesn't; stripping prefix from checkpoint keys")
+            state_dict = {(k[10:] if k.startswith("_orig_mod.") else k): v for k, v in state_dict.items()}
+
+        # Resize and reset puzzle emb if needed (try both with and without prefix)
+        puzzle_emb_names = ["model.inner.puzzle_emb.weights", "_orig_mod.model.inner.puzzle_emb.weights"]
+        for puzzle_emb_name in puzzle_emb_names:
+            if puzzle_emb_name in state_dict:
+                puzzle_emb = state_dict[puzzle_emb_name]
+                try:
+                    expected_shape: torch.Size = model.model.puzzle_emb.weights.shape  # type: ignore
+                except AttributeError:
+                    # If model has prefix, try to access it differently
+                    expected_shape = None
+                
+                if expected_shape is not None and puzzle_emb.shape != expected_shape:
+                    print(f"Resetting puzzle embedding as shape is different. Found {puzzle_emb.shape}, Expected {expected_shape}")
+                    # Re-initialize using mean
+                    state_dict[puzzle_emb_name] = (
+                        torch.mean(puzzle_emb, dim=0, keepdim=True).expand(expected_shape).contiguous()
+                    )
+                break
+
+        # Finally load state dict (allow assignment semantics used by the model)
         model.load_state_dict(state_dict, assign=True)
 
 
@@ -373,6 +398,13 @@ def evaluate(
         
         for set_name, batch, global_batch_size in eval_loader:
             processed_batches += 1
+            
+            # Check batch limit
+            if config.max_eval_batches is not None and processed_batches > config.max_eval_batches:
+                if rank == 0:
+                    print(f"Reached max_eval_batches limit ({config.max_eval_batches}), stopping evaluation")
+                break
+            
             if rank == 0:
                 print(f"Processing batch {processed_batches}: {set_name}")
             
@@ -381,12 +413,32 @@ def evaluate(
             with torch.device("cuda"):
                 carry = train_state.model.initial_carry(batch)  # type: ignore
 
-            # Forward
+            # Forward - with intermediate results capture
             inference_steps = 0
+            intermediate_results = []  # Capture per-step results
+            
             while True:
+                # Capture state before step
+                active_mask = ~carry.halted  # Which examples are still solving
+                
+                # Run one step
                 carry, loss, metrics, preds, all_finish = train_state.model(
                     carry=carry, batch=batch, return_keys=return_keys
                 )
+                
+                # Capture after step
+                step_data = {
+                    "step": inference_steps,
+                    "predictions": preds["preds"].cpu() if "preds" in preds else None,
+                    "logits": preds.get("logits", None).cpu() if "logits" in preds else None,
+                    "q_halt_logits": preds.get("q_halt_logits", None).cpu() if "q_halt_logits" in preds else None,
+                    "q_continue_logits": preds.get("q_continue_logits", None).cpu() if "q_continue_logits" in preds else None,
+                    "steps_per_example": carry.steps.cpu(),
+                    "halted": carry.halted.cpu(),
+                    "active_mask": active_mask.cpu(),
+                }
+                intermediate_results.append(step_data)
+                
                 inference_steps += 1
 
                 if all_finish:
@@ -394,6 +446,21 @@ def evaluate(
 
             if rank == 0:
                 print(f"  Completed inference in {inference_steps} steps")
+                
+            # Save intermediate results
+            if rank == 0 and config.checkpoint_path is not None:
+                import pickle
+                checkpoint_parent = os.path.dirname(config.checkpoint_path)
+                intermediate_dir = os.path.join(checkpoint_parent, "intermediate_results")
+                os.makedirs(intermediate_dir, exist_ok=True)
+            
+                intermediate_out_path = os.path.join(
+                    intermediate_dir,
+                    f"step_{train_state.step}_batch_{processed_batches}.pkl"
+                )
+                with open(intermediate_out_path, "wb") as f:
+                    pickle.dump(intermediate_results, f)
+                print(f"  Saved intermediate results to {intermediate_out_path}")
 
             for collection in (batch, preds):
                 for k, v in collection.items():
