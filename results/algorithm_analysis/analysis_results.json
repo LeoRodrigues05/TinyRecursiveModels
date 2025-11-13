@@ -1,0 +1,108 @@
+{
+  "backtracking": {
+    "rollback_rate": 0.0,
+    "rollback_steps": 0,
+    "mean_changes_per_cell": 0.5592592592592592,
+    "max_changes_per_cell": 15,
+    "cells_with_multiple_changes": 58,
+    "mean_value_flips_per_cell": 0.5592592592592592,
+    "max_value_flips": 15,
+    "cells_with_value_flips": 178
+  },
+  "monotonic": {
+    "is_monotonic": false,
+    "monotonic_violations": 453,
+    "mean_new_fills_per_step": 0.0,
+    "std_new_fills_per_step": 0.0,
+    "mean_erases_per_step": 0.0,
+    "total_erases": 0
+  },
+  "refinement": {
+    "entropy_decrease_ratio": 0,
+    "entropy_start": 0,
+    "entropy_end": 0,
+    "entropy_reduction": 0,
+    "confidence_start": 0,
+    "confidence_end": 0,
+    "mean_changes_per_step": 0,
+    "std_changes_per_step": 0,
+    "violation_fix_rate": 0.2869757174392936,
+    "entropy_trajectory": [],
+    "confidence_trajectory": []
+  },
+  "propagation": {
+    "cascade_steps": 55,
+    "independent_multi_fills": 58,
+    "single_fills": 18,
+    "cascade_ratio": 0.4198473282442748,
+    "single_fill_ratio": 0.13740458015267176
+  },
+  "hamming": {
+    "mean_hamming_per_step": [
+      0.24080565616409536,
+      0.1013720080416995,
+      0.03450033783518357,
+      0.03828991671096934,
+      0.04400673400673401,
+      0.034855573276625904,
+      0.03306751727804359,
+      0.03283182704235336,
+      0.031219209640262268,
+      0.04013822434875066,
+      0.04767676767676767,
+      0.02387205387205387,
+      0.03108452950558214,
+      0.05671096934254829,
+      0.03296770967823599
+    ],
+    "std_hamming_per_step": [
+      0.0785380733407201,
+      0.0721855820547912,
+      0.03730595218436444,
+      0.06490846693120116,
+      0.07667636633506655,
+      0.05579936639591771,
+      0.05007243261678568,
+      0.06760561539557189,
+      0.050454180990722415,
+      0.08089245473117512,
+      0.08539721552812565,
+      0.04346342304288165,
+      0.04347596291220184,
+      0.08188375144677616,
+      0.044149110587510206
+    ],
+    "overall_mean_hamming": 0.054893268961327034,
+    "overall_std_hamming": 0.052752115128045514
+  },
+  "certainty": {
+    "mean_fill_confidence": 0,
+    "median_fill_confidence": 0,
+    "min_fill_confidence": 0,
+    "max_fill_confidence": 0,
+    "low_confidence_fills": 0,
+    "high_confidence_fills": 0,
+    "confidence_distribution": {}
+  },
+  "kl": {
+    "mean_kl_per_step": [],
+    "overall_mean_kl": 0
+  },
+  "classification": {
+    "primary_strategy": "GUESS_AND_CHECK",
+    "is_hybrid": false,
+    "confidence_scores": {
+      "BACKTRACKING": 0.16666666666666666,
+      "CONSTRAINT_PROPAGATION": 0.25,
+      "ITERATIVE_REFINEMENT": 0.16666666666666666,
+      "GUESS_AND_CHECK": 0.4166666666666667
+    },
+    "raw_scores": {
+      "BACKTRACKING": 20,
+      "CONSTRAINT_PROPAGATION": 30,
+      "ITERATIVE_REFINEMENT": 20,
+      "GUESS_AND_CHECK": 50
+    },
+    "secondary_strategy": null
+  }
+}

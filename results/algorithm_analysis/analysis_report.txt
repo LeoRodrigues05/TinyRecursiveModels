@@ -1,0 +1,61 @@
+================================================================================
+SUDOKU SOLVING ALGORITHM ANALYSIS REPORT
+================================================================================
+
+Primary Strategy: GUESS_AND_CHECK
+
+--------------------------------------------------------------------------------
+DETAILED METRICS
+--------------------------------------------------------------------------------
+
+
+BACKTRACKING:
+  rollback_rate: 0.0
+  rollback_steps: 0
+  mean_changes_per_cell: 0.5592592592592592
+  max_changes_per_cell: 15
+  cells_with_multiple_changes: 58
+  mean_value_flips_per_cell: 0.5592592592592592
+  max_value_flips: 15
+  cells_with_value_flips: 178
+
+MONOTONIC:
+  is_monotonic: False
+  monotonic_violations: 453
+  mean_new_fills_per_step: 0.0
+  std_new_fills_per_step: 0.0
+  mean_erases_per_step: 0.0
+  total_erases: 0
+
+REFINEMENT:
+  entropy_decrease_ratio: 0
+  entropy_start: 0
+  entropy_end: 0
+  entropy_reduction: 0
+  confidence_start: 0
+  confidence_end: 0
+  mean_changes_per_step: 0
+  std_changes_per_step: 0
+  violation_fix_rate: 0.2869757174392936
+
+PROPAGATION:
+  cascade_steps: 55
+  independent_multi_fills: 58
+  single_fills: 18
+  cascade_ratio: 0.4198473282442748
+  single_fill_ratio: 0.13740458015267176
+
+HAMMING:
+  overall_mean_hamming: 0.054893268961327034
+  overall_std_hamming: 0.052752115128045514
+
+CERTAINTY:
+  mean_fill_confidence: 0
+  median_fill_confidence: 0
+  min_fill_confidence: 0
+  max_fill_confidence: 0
+  low_confidence_fills: 0
+  high_confidence_fills: 0
+
+KL:
+  overall_mean_kl: 0

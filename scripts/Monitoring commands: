@@ -1,0 +1,5 @@
+Monitoring commands:
+  View log:        tail -f eval_full_20251113_151750.log
+  Check progress:  grep -i 'accuracy\|loss\|step' eval_full_20251113_151750.log | tail -20
+  Check if running: ps -p 179732
+  Kill process:    kill 179732
